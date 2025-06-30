@@ -32,35 +32,34 @@ mongoose.connect(process.env.MONGO_URI)
 app.post('/api/app', async (req, res) => {
   const payload = req.body;
   debug('⇨ App POST', payload);
-  console.log('[ACTIVE_WINDOW][APP]', payload); // Log active window for app
+  console.log('[ACTIVE_WINDOW][APP]', payload);
+  console.log('[DEBUG][APP] Request IP:', req.ip, '| Headers:', req.headers);
   try {
     if (!payload.title) return res.status(400).json({ error: 'Missing title' });
     const doc = await AppActivity.create(payload);
-    console.log('[ACTIVE_WINDOW][APP][SAVED]', doc); // Log after saving
+    console.log('[ACTIVE_WINDOW][APP][SAVED]', doc);
     res.status(201).json({ success: true, id: doc._id });
   } catch (e) {
-    console.error('App POST error', e);
-    res.status(500).json({ error: e.message });
+    console.error('App POST error', e.stack || e);
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
 
 app.post('/api/web', async (req, res) => {
   const payload = req.body;
   debug('⇨ Web POST', payload);
-  console.log('[ACTIVE_WINDOW][WEB]', payload); // Log active window for web
+  console.log('[ACTIVE_WINDOW][WEB]', payload);
+  console.log('[DEBUG][WEB] Request IP:', req.ip, '| Headers:', req.headers);
   try {
     // Save web activity as usual
     const doc = await WebActivity.create(payload);
-    console.log('[ACTIVE_WINDOW][WEB][SAVED]', doc); // Log after saving
+    console.log('[ACTIVE_WINDOW][WEB][SAVED]', doc);
 
     // --- Improved Blocked Website Check ---
-    // Fetch all blocked websites and check if any is present in title or url (case-insensitive, substring)
     const blockedSites = await BlockedWebsite.find();
     const titleLower = (payload.title || '').toLowerCase();
     const urlLower = (payload.url || '').toLowerCase();
     let matchedBlocked = null;
-    // console.log('[BLOCKED_WEBSITES][CHECK]', { title: titleLower, url: urlLower });
-    // console.log('[BLOCKED_WEBSITES][TOTAL]', blockedSites);
     for (const site of blockedSites) {
       const blockStr = (site.url || '').toLowerCase();
       if (blockStr && (titleLower.includes(blockStr) || urlLower.includes(blockStr))) {
@@ -69,7 +68,6 @@ app.post('/api/web', async (req, res) => {
       }
     }
     if (matchedBlocked) {
-      // Save to AlertLog
       await AlertLog.create({
         blockedUrl: matchedBlocked.url,
         attemptedAt: new Date(),
@@ -86,8 +84,8 @@ app.post('/api/web', async (req, res) => {
     }
     res.status(201).json({ success: true, id: doc._id });
   } catch (e) {
-    console.error('Web POST error', e);
-    res.status(500).json({ error: e.message });
+    console.error('Web POST error', e.stack || e);
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
 
@@ -140,12 +138,13 @@ app.post('/api/device/status', async (req, res) => {
 app.post('/api/fs', async (req, res) => {
   const payload = req.body;
   debug('⇨ FS POST', payload);
+  console.log('[DEBUG][FS] Request IP:', req.ip, '| Headers:', req.headers);
   try {
     const doc = await FsActivity.create(payload);
     res.status(201).json({ success: true, id: doc._id });
   } catch (e) {
-    console.error('FS POST error', e);
-    res.status(500).json({ error: e.message });
+    console.error('FS POST error', e.stack || e);
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
 
